@@ -1,0 +1,10 @@
+pandas==3.0.6
+scikit-learn==1.9.1
+tabpfn==9.1.0
+ollama==0.6.3
+reportlab==5.0.1
+streamlit==1.65.0
+requests==2.34.2
+fastapi==0.143.0
+uvicorn==0.54.0
+pydantic==2.14.0
