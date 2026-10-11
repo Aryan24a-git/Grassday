@@ -122,13 +122,7 @@ def seed_demo_data(
         with open(forecast_path, "r", encoding="utf-8") as f:
             demo_forecast = json.load(f)
         
-        # We need to structure it like combined API data if needed, but data.py expects just the json
-        # Let's insert it into the cache directly under the key for the demo lat/lon
         cache_key = data._make_cache_key("forecast_combined", lat, lon)
-        with conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO weather_cache (cache_key, timestamp, data_json) VALUES (?, ?, ?)",
-                (cache_key, datetime.now(timezone.utc).isoformat(), json.dumps(demo_forecast)),
-            )
+        data._save_cache(conn, cache_key, "forecast_combined", lat, lon, None, demo_forecast)
 
     return outings

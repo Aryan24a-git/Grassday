@@ -137,11 +137,11 @@ def fetch_forecast(lat: float, lon: float, days: int = 7, db_path: str = DEFAULT
     }
 
     try:
-        w_resp = requests.get(FORECAST_API_URL, params=weather_params, timeout=10)
+        w_resp = requests.get(FORECAST_API_URL, params=weather_params, timeout=4)
         w_resp.raise_for_status()
         w_data = w_resp.json()
 
-        aq_resp = requests.get(AIR_QUALITY_API_URL, params=aqi_params, timeout=10)
+        aq_resp = requests.get(AIR_QUALITY_API_URL, params=aqi_params, timeout=4)
         aq_resp.raise_for_status()
         aq_data = aq_resp.json()
 
@@ -160,6 +160,19 @@ def fetch_forecast(lat: float, lon: float, days: int = 7, db_path: str = DEFAULT
             payload, fetched_at = cached
             logger.info("Using cached forecast fetched at %s", fetched_at)
             return payload, True
+
+        # Check bundled demo_forecast.json as infallible offline fallback
+        demo_path = Path(__file__).parent / "demo_forecast.json"
+        if demo_path.exists():
+            try:
+                with open(demo_path, "r", encoding="utf-8") as f:
+                    bundled = json.load(f)
+                _save_cache(conn, cache_key, "forecast_combined", lat, lon, None, bundled)
+                logger.info("Loaded bundled demo_forecast.json fallback for (%s, %s)", lat, lon)
+                return bundled, True
+            except Exception as e:
+                logger.warning("Bundled fallback failed: %s", e)
+
         raise ConnectionError(f"Network failed and no local cache available for forecast ({lat}, {lon}): {err}") from err
 
 
