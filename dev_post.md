@@ -16,14 +16,13 @@ Instead of forcing you to scroll through weather dashboards trying to guess the 
 
 ## Demo
 
-Here is Grassday in action:
+- 🌐 **Live Web App**: [https://grassday.vercel.app](https://grassday.vercel.app)
+- ⚡ **Backend API**: [https://grassday.onrender.com](https://grassday.onrender.com)
+- 📦 **GitHub Repository**: [https://github.com/Aryan24a-git/Grassday](https://github.com/Aryan24a-git/Grassday)
 
-*(Insert link to a short Loom/YouTube video here showing the UI, logging an outing, and downloading the PDF card)*
+![Grassday Hero UI](https://raw.githubusercontent.com/Aryan24a-git/Grassday/main/docs/hero_screenshot.png)
 
-![Grassday Hero UI](https://raw.githubusercontent.com/yourusername/grassday/main/docs/hero_screenshot.png)
-*(Replace with actual GitHub raw link to your screenshot)*
-
-**Repository:** [Link to your GitHub repo here]
+*(You can also test the full local experience with Ollama offline nudges and PDF generation by cloning the repository).*
 
 ### How to test it right now (Demo Mode)
 If you want to run this locally without spending weeks logging data, I built an offline Demo Mode. It seeds a SQLite database with 25 realistic outings from a synthetic user who secretly prefers 18–24°C, low wind, and no rain.

@@ -4,13 +4,21 @@
 
 **Built for DEV Hacktoberfest Open-Source AI Challenge - "Touch Grass" Theme.** 
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-success?style=for-the-badge&logo=vercel)](https://grassday.vercel.app/)
+[![API Status](https://img.shields.io/badge/API-Render-informational?style=for-the-badge&logo=render)](https://grassday.onrender.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+
+- 🌐 **Live Web App**: [https://grassday.vercel.app](https://grassday.vercel.app)
+- ⚡ **Backend API**: [https://grassday.onrender.com](https://grassday.onrender.com)
+- 📦 **GitHub Repository**: [https://github.com/Aryan24a-git/Grassday](https://github.com/Aryan24a-git/Grassday)
+
 Grassday minimizes your screen time by finding the best moments to "touch grass" based on your actual historical preferences, weather, and air quality. It learns locally via [TabPFN](https://github.com/automl/TabPFN), generates offline context-aware nudges via [Ollama](https://github.com/ollama/ollama), and produces a printable PDF field card so you can leave your phone behind. The "Living Nature" UI design is intentionally minimal—giving you the answer in one glance so the screen is the shortest part of your outdoor experience.
 
 ---
 
 ## 📸 Screenshots
 
-*(Insert screenshots here: Hero Recommendation Card, the 7-day forecast strip, and the generated PDF field card)*
+![Grassday Living Nature Interface](docs/hero_screenshot.png)
 
 ---
 
@@ -25,8 +33,8 @@ Grassday minimizes your screen time by finding the best moments to "touch grass"
 ### Quick Start
 1. Clone the repository and navigate to the directory:
    ```bash
-   git clone https://github.com/yourusername/grassday.git
-   cd grassday
+   git clone https://github.com/Aryan24a-git/Grassday.git
+   cd Grassday
    ```
 2. Install Python backend dependencies:
    ```bash
