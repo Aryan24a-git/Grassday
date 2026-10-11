@@ -456,6 +456,16 @@ export default function App() {
             </div>
           </section>
 
+          {/* Primary Action Buttons (Prominent under Hero Recommendation) */}
+          <section className="action-row">
+            <button className="btn-primary" onClick={() => setIsLogModalOpen(true)}>
+              <Plus size={18} /> Log an Outing
+            </button>
+            <button className="btn-secondary" onClick={handleDownloadFieldCard}>
+              <Download size={18} /> Print Field Card
+            </button>
+          </section>
+
           {/* 7-Day Forecast Strip */}
           <section>
             <div className="week-section-title">Next 7 Days — Best Windows</div>
@@ -497,16 +507,6 @@ export default function App() {
                 />
               </div>
             </div>
-          </section>
-
-          {/* Primary Action Buttons */}
-          <section className="action-row">
-            <button className="btn-primary" onClick={() => setIsLogModalOpen(true)}>
-              <Plus size={18} /> Log an Outing
-            </button>
-            <button className="btn-secondary" onClick={handleDownloadFieldCard}>
-              <Download size={18} /> Print Field Card
-            </button>
           </section>
         </>
       )}
