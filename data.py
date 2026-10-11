@@ -374,23 +374,30 @@ def extract_features_for_time(weather_df: pd.DataFrame, target_dt: datetime) -> 
 def log_outing(
     lat: float,
     lon: float,
-    date_str: str,
-    time_str: str,
-    activity: str,
-    rating: float,
+    date_str: Optional[str] = None,
+    time_str: Optional[str] = None,
+    activity: str = "walk",
+    rating: float = 3.0,
     notes: Optional[str] = None,
     db_path: str = DEFAULT_DB_PATH,
+    outing_date: Optional[str] = None,
+    outing_time: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Log a past outing to SQLite, automatically attaching historical weather features.
-    date_str format: YYYY-MM-DD
-    time_str format: HH:MM or HH:MM:SS
+    date_str / outing_date format: YYYY-MM-DD
+    time_str / outing_time format: HH:MM or HH:MM:SS
     rating: 1.0 to 5.0
     """
+    effective_date = date_str or outing_date
+    effective_time = time_str or outing_time
+    if not effective_date or not effective_time:
+        raise ValueError("Both date and time are required to log an outing.")
+
     if not (1.0 <= rating <= 5.0):
         raise ValueError(f"Rating must be between 1.0 and 5.0, got {rating}")
 
-    target_dt_str = f"{date_str}T{time_str}"
+    target_dt_str = f"{effective_date}T{effective_time}"
     target_dt = pd.to_datetime(target_dt_str)
 
     # Fetch history for that date

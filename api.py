@@ -274,8 +274,8 @@ def log_outing(payload: OutingPayload):
         data.log_outing(
             lat=payload.latitude,
             lon=payload.longitude,
-            outing_date=payload.outing_date,
-            outing_time=payload.outing_time,
+            date_str=payload.outing_date,
+            time_str=payload.outing_time,
             activity=payload.activity,
             rating=payload.rating,
             notes=payload.notes if payload.notes else None,
