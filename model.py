@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -20,6 +21,8 @@ from tabpfn import TabPFNRegressor
 import data
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_CHECKPOINT_PATH = Path(__file__).parent / "tabpfn-v2-regressor.ckpt"
 
 FEATURE_COLUMNS = [
     "temperature_2m",
@@ -132,9 +135,15 @@ def load_training_data(db_path: str = data.DEFAULT_DB_PATH) -> Tuple[pd.DataFram
 class GrassdayModel:
     """Grassday predictor combining TabPFN regressor with cold-start comfort prior."""
 
-    def __init__(self, model_checkpoint: str = "tabpfn-v2-regressor.ckpt", device: str = "cpu"):
+    def __init__(self, model_checkpoint: Optional[str] = None, device: str = "cpu"):
         self.device = device
-        self.model_checkpoint = model_checkpoint
+        if model_checkpoint is None:
+            if DEFAULT_CHECKPOINT_PATH.exists():
+                self.model_checkpoint = str(DEFAULT_CHECKPOINT_PATH.resolve())
+            else:
+                self.model_checkpoint = "tabpfn-v2-regressor.ckpt"
+        else:
+            self.model_checkpoint = model_checkpoint
         self.regressor: Optional[TabPFNRegressor] = None
         self.is_fitted: bool = False
         self.train_count: int = 0
@@ -153,7 +162,13 @@ class GrassdayModel:
                 self.neutral_reference[col] = float(X[col].mean())
 
         try:
-            self.regressor = TabPFNRegressor(model_path=self.model_checkpoint, device=self.device)
+            self.regressor = TabPFNRegressor(
+                model_path=self.model_checkpoint,
+                device=self.device,
+                n_estimators=4,
+                fit_mode="low_memory",
+                memory_saving_mode=True,
+            )
             self.regressor.fit(X[FEATURE_COLUMNS].values, y.values)
             self.is_fitted = True
         except Exception as err:
@@ -336,21 +351,65 @@ class GrassdayModel:
 
         eval_features = [f for f in feature_labels.keys() if f in FEATURE_COLUMNS]
 
-        for feat in eval_features:
-            perturbed = dict(window_row)
-            perturbed[feat] = self.neutral_reference.get(feat, NEUTRAL_FEATURE_DEFAULTS.get(feat, 0.0))
-            perturbed_pred = self.predict_window(perturbed)["predicted"]
-            delta = round(base_pred - perturbed_pred, 3)
+        if self.is_fitted and self.regressor is not None:
+            batch_perturbed = []
+            for feat in eval_features:
+                perturbed = dict(window_row)
+                perturbed[feat] = self.neutral_reference.get(feat, NEUTRAL_FEATURE_DEFAULTS.get(feat, 0.0))
+                batch_perturbed.append([float(perturbed.get(c, self.neutral_reference.get(c, 0.0))) for c in FEATURE_COLUMNS])
 
-            val = window_row.get(feat, 0.0)
-            impacts.append({
-                "feature": feat,
-                "label": feature_labels.get(feat, feat),
-                "value": val,
-                "delta": delta,
-                "abs_delta": abs(delta),
-                "direction": "positive" if delta > 0 else "negative" if delta < 0 else "neutral",
-            })
+            try:
+                preds = self.regressor.predict(np.array(batch_perturbed), output_type="quantiles", quantiles=[0.5])
+                q50_arr = np.clip(preds[0], 1.0, 5.0)
+                prior_weight = max(0.0, (10 - self.train_count) / 10.0) if self.train_count < 10 else 0.0
+                model_weight = 1.0 - prior_weight
+
+                for idx, feat in enumerate(eval_features):
+                    perturbed = dict(window_row)
+                    perturbed[feat] = self.neutral_reference.get(feat, NEUTRAL_FEATURE_DEFAULTS.get(feat, 0.0))
+                    p = compute_heuristic_prior(perturbed)
+                    blended = float(np.clip(prior_weight * p + model_weight * q50_arr[idx], 1.0, 5.0))
+                    delta = round(base_pred - blended, 3)
+                    val = window_row.get(feat, 0.0)
+                    impacts.append({
+                        "feature": feat,
+                        "label": feature_labels.get(feat, feat),
+                        "value": val,
+                        "delta": delta,
+                        "abs_delta": abs(delta),
+                        "direction": "positive" if delta > 0 else "negative" if delta < 0 else "neutral",
+                    })
+            except Exception as e:
+                logger.warning("Batched perturbation failed: %s", e)
+                for feat in eval_features:
+                    perturbed = dict(window_row)
+                    perturbed[feat] = self.neutral_reference.get(feat, NEUTRAL_FEATURE_DEFAULTS.get(feat, 0.0))
+                    p = compute_heuristic_prior(perturbed)
+                    delta = round(base_pred - p, 3)
+                    val = window_row.get(feat, 0.0)
+                    impacts.append({
+                        "feature": feat,
+                        "label": feature_labels.get(feat, feat),
+                        "value": val,
+                        "delta": delta,
+                        "abs_delta": abs(delta),
+                        "direction": "positive" if delta > 0 else "negative" if delta < 0 else "neutral",
+                    })
+        else:
+            for feat in eval_features:
+                perturbed = dict(window_row)
+                perturbed[feat] = self.neutral_reference.get(feat, NEUTRAL_FEATURE_DEFAULTS.get(feat, 0.0))
+                p = compute_heuristic_prior(perturbed)
+                delta = round(base_pred - p, 3)
+                val = window_row.get(feat, 0.0)
+                impacts.append({
+                    "feature": feat,
+                    "label": feature_labels.get(feat, feat),
+                    "value": val,
+                    "delta": delta,
+                    "abs_delta": abs(delta),
+                    "direction": "positive" if delta > 0 else "negative" if delta < 0 else "neutral",
+                })
 
         # Sort by largest magnitude of delta
         impacts.sort(key=lambda x: x["abs_delta"], reverse=True)

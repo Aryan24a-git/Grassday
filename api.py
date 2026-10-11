@@ -113,6 +113,13 @@ def get_prediction(
             if cur.fetchone()[0] == 0:
                 demo_module.seed_demo_data(lat=lat, lon=lon, location_name=location_name)
 
+        pred_cache_key = f"{lat}_{lon}_{location_name}_{activity}_{offline}_{demo}"
+        cached_entry = _prediction_cache.get(pred_cache_key)
+        if cached_entry:
+            cached_ts, cached_payload = cached_entry
+            if (datetime.now().timestamp() - cached_ts) < 300:
+                return cached_payload
+
         clf, train_count = get_trained_model()
 
         # Fetch weather
@@ -184,7 +191,7 @@ def get_prediction(
         uncertainty = float(top_window.get("uncertainty", 1.0))
         confidence = round(max(0.1, 1.0 - (uncertainty / 4.0)), 2)
 
-        return {
+        payload = {
             "top_window": top_window,
             "drivers": drivers,
             "nudge": nudge_result,
@@ -195,6 +202,8 @@ def get_prediction(
             "location": location_name,
             "season": season,
         }
+        _prediction_cache[pred_cache_key] = (datetime.now().timestamp(), payload)
+        return payload
 
     except HTTPException:
         raise
@@ -225,10 +234,11 @@ def log_outing(payload: OutingPayload):
             rating=payload.rating,
             notes=payload.notes if payload.notes else None,
         )
-        # Clear model cache so next prediction incorporates new outing
-        global _cached_model_key, _cached_clf
+        # Clear model cache and prediction cache so next prediction incorporates new outing
+        global _cached_model_key, _cached_clf, _prediction_cache
         _cached_model_key = ""
         _cached_clf = None
+        _prediction_cache.clear()
 
         X_train, _ = model.load_training_data()
         return {"success": True, "train_count": len(X_train)}
@@ -270,9 +280,10 @@ def reset_database():
         with conn:
             conn.execute("DELETE FROM outings")
             conn.execute("DELETE FROM weather_cache")
-        global _cached_model_key, _cached_clf
+        global _cached_model_key, _cached_clf, _prediction_cache
         _cached_model_key = ""
         _cached_clf = None
+        _prediction_cache.clear()
         return {"success": True, "message": "Outings and weather cache cleared"}
     except Exception as e:
         logger.exception("Reset failed: %s", e)
