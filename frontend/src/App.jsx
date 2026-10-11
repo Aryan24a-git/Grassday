@@ -669,32 +669,32 @@ export default function App() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+              <label className="settings-toggle-row">
                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>📴 Offline Mode</span>
                 <input
                   type="checkbox"
-                  style={{ width: 18, height: 18, accentColor: 'var(--accent-moss)' }}
+                  style={{ width: 18, height: 18, accentColor: 'var(--accent-moss)', cursor: 'pointer' }}
                   checked={offline}
                   onChange={(e) => setOffline(e.target.checked)}
                 />
-              </div>
+              </label>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+              <label className="settings-toggle-row">
                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>🎬 Demo Mode (25 seeded logs)</span>
                 <input
                   type="checkbox"
-                  style={{ width: 18, height: 18, accentColor: 'var(--accent-moss)' }}
+                  style={{ width: 18, height: 18, accentColor: 'var(--accent-moss)', cursor: 'pointer' }}
                   checked={demo}
                   onChange={(e) => setDemo(e.target.checked)}
                 />
-              </div>
+              </label>
 
               <div style={{ borderTop: '1px solid var(--glass-border-subtle)', paddingTop: '1rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={handleReset}
-                  style={{ width: '100%', color: 'var(--accent-danger)' }}
+                  style={{ width: '100%', borderColor: 'rgba(217, 83, 79, 0.35)', color: 'var(--accent-danger)' }}
                 >
                   <Trash2 size={16} /> Reset Outings & Clear Cache
                 </button>
