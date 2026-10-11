@@ -8,7 +8,8 @@ backend:
 	python -m uvicorn api:app --host 127.0.0.1 --port 8000
 
 demo:
-	python -m uvicorn api:app --host 127.0.0.1 --port 8000 --demo
+	python demo.py
+	python -m uvicorn api:app --host 127.0.0.1 --port 8000
 
 frontend:
 	cd frontend && npm run dev

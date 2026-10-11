@@ -126,3 +126,8 @@ def seed_demo_data(
         data._save_cache(conn, cache_key, "forecast_combined", lat, lon, None, demo_forecast)
 
     return outings
+
+
+if __name__ == "__main__":
+    seeded = seed_demo_data()
+    print(f"Demo data seeded successfully ({len(seeded)} outings generated or already present).")
