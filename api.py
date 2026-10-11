@@ -7,6 +7,7 @@ and printable field cards to the modern React frontend.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -26,7 +27,7 @@ logger = logging.getLogger("grassday_api")
 
 app = FastAPI(title="Grassday API", version="1.0.0")
 
-# Enable CORS for React frontend (Vite default is 5173)
+# Enable CORS for React frontend (Vercel, localhost, etc.)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,6 +35,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup_event():
+    """Ensure database is initialized and optionally pre-seed with demo outings."""
+    try:
+        conn = data.get_db_connection()
+        is_demo_mode = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM outings")
+        count = cur.fetchone()[0]
+        if is_demo_mode or count == 0:
+            logger.info("Initializing demo data (count=%d, DEMO_MODE=%s)...", count, is_demo_mode)
+            demo_module.seed_demo_data()
+    except Exception as e:
+        logger.warning("Startup seeding skipped or non-fatal: %s", e)
+
 
 # ─── In-memory cache for fast UI updates ──────────────────────────────────────
 _prediction_cache: Dict[str, Any] = {}
@@ -74,8 +92,14 @@ def get_prediction(
 ):
     try:
         conn = data.get_db_connection()
+        is_demo_env = os.environ.get("DEMO_MODE", "").lower() in ("1", "true", "yes")
         if demo:
             demo_module.seed_demo_data(lat=lat, lon=lon, location_name=location_name)
+        elif is_demo_env:
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM outings")
+            if cur.fetchone()[0] == 0:
+                demo_module.seed_demo_data(lat=lat, lon=lon, location_name=location_name)
 
         clf, train_count = get_trained_model()
 

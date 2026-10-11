@@ -31,6 +31,8 @@ const RATING_EMOJIS = [
   { val: 5.0, icon: '🌲', label: 'Magical' },
 ]
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '') : ''
+
 export default function App() {
   // Theme state
   const [theme, setTheme] = useState(() => {
@@ -95,7 +97,7 @@ export default function App() {
         ollama_model: ollamaModel,
         demo: demo.toString(),
       })
-      const res = await fetch(`/api/prediction?${params}`)
+      const res = await fetch(`${API_BASE}/api/prediction?${params}`)
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         throw new Error(errJson.detail || `Failed to fetch prediction (${res.status})`)
@@ -126,7 +128,7 @@ export default function App() {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      const res = await fetch('/api/outings', {
+      const res = await fetch(`${API_BASE}/api/outings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,14 +170,14 @@ export default function App() {
       activity,
       ollama_model: ollamaModel,
     })
-    window.open(`/api/field-card?${params}`, '_blank')
+    window.open(`${API_BASE}/api/field-card?${params}`, '_blank')
   }
 
   // Handle resetting outings database
   const handleReset = async () => {
     if (!window.confirm('Clear all logged outings and weather cache?')) return
     try {
-      await fetch('/api/reset', { method: 'POST' })
+      await fetch(`${API_BASE}/api/reset`, { method: 'POST' })
       setIsSettingsModalOpen(false)
       fetchPrediction()
     } catch (err) {
@@ -252,6 +254,9 @@ export default function App() {
           <div className="pulse-sprout">🌱</div>
           <p style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
             Scanning forecast & finding your window...
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', opacity: 0.75, marginTop: '0.25rem' }}>
+            Connecting to TabPFN model (free-tier Render cold boot may take ~30s on first load)
           </p>
         </div>
       ) : error ? (
