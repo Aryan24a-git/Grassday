@@ -1,65 +1,81 @@
----
-title: "Grassday 🌿: An Offline-First AI Companion That Tells You Exactly When to Go Outside"
-published: false
-description: "My submission for the DEV Hacktoberfest Open-Source AI Challenge. Grassday uses TabPFN and a local LLM to predict your perfect outdoor window so you can leave your screen behind."
-tags: "ai, hacktoberfest, python, react, tabpfn"
----
+*This is a submission for the [Hacktoberfest Open-Source AI Challenge Week 1: Touch Grass](https://dev.to/challenges/hacktoberfest-week1-2026-10-05)*
 
 ## What I Built
 
-**Grassday** is a local-first, privacy-respecting web app designed to minimize your screen time and maximize your time outdoors. 
+Last Saturday, I opened three different weather apps, compared radar maps, checked air quality widgets, and cross-referenced sunset times for forty-five minutes. By the time I decided 3:30 PM was the mathematically optimal window to take a walk, clouds rolled in, it started drizzling, and I had not moved an inch from my chair. That was the humbling moment I realized I was spending far more screen time obsessing over going outside than actually touching grass.
 
-Instead of forcing you to scroll through weather dashboards trying to guess the best time for a walk, Grassday gives you the answer in one glance. It learns your unique biometeorological preferences (e.g., do you love a crisp 15°C morning, or a warm 25°C afternoon with low wind?) using a local **TabPFN** regression model. It then generates a context-aware nudge using an offline **Ollama** LLM (like Qwen2.5 or Llama-3.2) and creates a printable PDF field card so you can literally leave your phone behind.
+Grassday is an offline-first AI companion that learns your personal outdoor preferences and pinpoints your exact peak 2-hour window each day, giving you the answer in one glance.
 
-**Theme:** Touch Grass
-**Track:** Best Use of TabPFN
+The core design principle was simple: *the screen must be the shortest part of the experience.* 
+
+Instead of an endless dashboard of barometric pressures and hourly graphs that keep your eyes glued to glass, Grassday gives you a single recommendation card, explains why that window was picked, and generates a printable PDF field card so you can leave your phone on your desk and walk out the door.
 
 ## Demo
 
 - 🌐 **Live Web App**: [https://grassday.vercel.app](https://grassday.vercel.app)
-- ⚡ **Backend API**: [https://grassday.onrender.com](https://grassday.onrender.com)
-- 📦 **GitHub Repository**: [https://github.com/Aryan24a-git/Grassday](https://github.com/Aryan24a-git/Grassday)
+- ⚡ **API Service**: [https://grassday.onrender.com](https://grassday.onrender.com)
 
-![Grassday Hero UI](https://raw.githubusercontent.com/Aryan24a-git/Grassday/main/docs/hero_screenshot.png)
+![Grassday Living Nature Interface](https://raw.githubusercontent.com/Aryan24a-git/Grassday/main/docs/hero_screenshot.png)
 
-*(You can also test the full local experience with Ollama offline nudges and PDF generation by cloning the repository).*
+*(The public demo runs seeded with 25 realistic outings from a synthetic user who prefers 18–24°C, low wind, and no rain. Running it locally allows you to log your own genuine outings).*
 
-### How to test it right now (Demo Mode)
-If you want to run this locally without spending weeks logging data, I built an offline Demo Mode. It seeds a SQLite database with 25 realistic outings from a synthetic user who secretly prefers 18–24°C, low wind, and no rain.
-```bash
-# Clone the repo and start the backend
-pip install -r requirements.txt
-python -m uvicorn api:app --host 127.0.0.1 --port 8000
-# (Run python demo.py to seed the database instantly)
+## Code
 
-# Start the frontend
-cd frontend
-npm install
-npm run dev
+{% github Aryan24a-git/Grassday %}
+
+The full open-source codebase is available at:
+**[https://github.com/Aryan24a-git/Grassday](https://github.com/Aryan24a-git/Grassday)**
+
+- **Backend**: FastAPI, SQLite, TabPFN v2 regressor, ReportLab PDF generator.
+- **Frontend**: React, Vite, Lucide icons, responsive Living Nature theme.
+
+## How I Built It
+
+Personalizing outdoor comfort is notoriously hard. Everyone has different preferences—some love crisp 12°C autumn mornings, while others only venture out in 24°C afternoons. But asking a normal human to log 500 outings before getting a recommendation is unrealistic; real people log maybe 10 to 25 outings. 
+
+Traditional ML models (like XGBoost or small neural nets) fail on 20 rows of data—they either overfit immediately or predict the global mean.
+
+This is why I built the intelligence layer around **TabPFN** (Prior-Data Fitted Networks). TabPFN is a foundation model for tabular data. Because it was pre-trained on millions of synthetic datasets, it performs instant in-context regression on tiny sample sizes without gradient descent.
+
+```mermaid
+graph TD
+    A[Open-Meteo 7-Day Forecast & AQI] --> B[(Local SQLite Cache)]
+    C[User Outings History: 1-5 Stars] --> D[TabPFN Regressor]
+    B --> D
+    D --> E[In-Context Comfort Scoring]
+    E --> F[Vectorized Feature Sensitivity]
+    F --> G[Nudge Engine: Ollama / Fallback]
+    G --> H[ReportLab Printable Field Card]
+    E --> I[Living Nature React Frontend]
 ```
 
-## My Journey
+### The Pipeline:
+1. **Feature Extraction**: Extracts 14 environmental features for every 2-hour rolling window: apparent temperature, wind speed, precipitation, cloud cover, UV index, PM2.5, daylight fraction, and sunset proximity.
+2. **In-Context Regression**: TabPFN scores every future window against your past outing ratings.
+3. **Validation**: I benchmarked the model using Leave-One-Out Cross-Validation (LOOCV) against 25 synthetic outings with non-linear preferences:
+   - **Naive Baseline MAE** (predicting user's mean): `0.92`
+   - **Grassday TabPFN MAE**: `0.82`
+   - **Error reduction**: `11.4%` with just 25 rows.
+4. **Cold Start Blend**: With fewer than 10 logged outings, Grassday smoothly blends TabPFN with a biometeorological heuristic prior (penalizing freezing winds, excessive UV, or high air pollution) so Day 1 predictions are always sensible.
+5. **Printable Field Card**: ReportLab generates an index-card sized PDF with your time, temperature, and suggested things to observe outside.
 
-When I saw the "Touch Grass" theme, my immediate thought was the irony of building software that keeps you staring at a screen to figure out how to go outside. My core design principle became: *"The screen must be the shortest part of the experience."* 
+## Why Does Open Innovation Matter?
 
-To achieve this, the UI had to be instantly decisive. No infinite scrolling. Just one card, one specific time window, and a nudge.
+Building Grassday with open-source AI delivered three clear wins that a proprietary closed API could never match:
 
-### The TabPFN Magic
-The biggest technical hurdle was personalization. Everyone likes different weather. But training a traditional neural network or XGBoost model locally for a single user with only 10-20 data points is notoriously difficult—they overfit instantly.
+1. **Absolute Privacy**: Your daily habits, routines, and exact coordinates never leave your machine. Your SQLite database lives on your laptop, and TabPFN runs locally in Python.
+2. **True Offline Resilience**: With the forecast cached, the entire prediction engine runs in a mountain cabin without a single bar of cell service.
+3. **Zero Cost and Zero Tokens**: There are no API subscriptions, no credit card requirements, and no surprise rate-limit bills. 
 
-This is where **TabPFN** blew my mind. Because it's a pre-trained Prior-Data Fitted Network, it acts like a foundation model for tabular data. It performs in-context learning on small datasets in fractions of a second without gradient descent. 
+### One Honest Limitation:
+Small-data machine learning is not magic. With fewer than 5 outings, TabPFN still relies heavily on the heuristic prior to avoid eccentric recommendations. Additionally, the TabPFN v2 checkpoint is roughly 44 MB; fitting it into free-tier cloud limits required low-memory estimation flags (`n_estimators=4`) and vectorizing sensitivity perturbations to prevent CPU timeouts.
 
-I set up a regression pipeline mapping 14 environmental features (temperature, UV index, PM2.5, wind, daylight fraction, sunset proximity, etc.) to a subjective 1-5 user rating. 
+## My Agent Session
 
-**The Evaluation:**
-I wrote a Leave-One-Out Cross-Validation (LOOCV) script (`loocv_eval.py`) against 25 synthetic outings with complex, non-linear preferences. 
-- **Naive Baseline MAE** (just guessing the user's average rating): `0.92`
-- **Grassday TabPFN MAE**: `0.82`
-- **Improvement:** An `11.4%` reduction in absolute error with only 25 rows of data. 
+I built Grassday using pair programming with Google Antigravity. 
 
-To handle the "Cold Start" problem (when a user has logged 0 outings), I implemented a hybrid biometeorological heuristic. It gently blends TabPFN's predictions with a physical prior that penalizes extreme UV or gale-force winds, ensuring the app is actually useful on Day 1.
+The agent helped streamline the 14-feature biometeorological transformation, vectorized the feature sensitivity perturbations into a single batched matrix pass (slashing inference latency from 55 seconds down to 1.5 seconds so Render's 512MB free tier wouldn't time out), and tracked down tricky Chromium compositor bugs where backdrop-filters inside overflow containers were dropping font rasterization.
 
-### The UI and the PDF Card
-I wanted the app to feel like a calm invitation. I built a custom "Living Nature" glassmorphism UI in React + Vite. The app runs completely locally via a FastAPI backend, meaning your location and preferences never leave your machine.
+## Prize Categories
 
-Finally, to truly commit to the "Touch Grass" theme, I added a feature that generates a beautiful, printable **PDF Field Card** (using `reportlab`). It includes your window time, weather, and the LLM's suggested things to notice—so you can print it, grab your keys, and leave the glowing rectangle on your desk. 🌿
+- **Best Use of TabPFN** (Primary Track: in-context regression on small user tabular outing data with LOOCV validation).
