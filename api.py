@@ -92,6 +92,52 @@ def health():
     return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
 
 
+@app.get("/api/debug")
+def debug():
+    import time
+    steps: Dict[str, Any] = {}
+    t0 = time.time()
+    steps["checkpoint_exists"] = model.DEFAULT_CHECKPOINT_PATH.exists()
+    steps["checkpoint_path"] = str(model.DEFAULT_CHECKPOINT_PATH)
+    steps["checkpoint_size_mb"] = (
+        round(model.DEFAULT_CHECKPOINT_PATH.stat().st_size / 1024 / 1024, 2)
+        if model.DEFAULT_CHECKPOINT_PATH.exists()
+        else 0
+    )
+
+    t1 = time.time()
+    try:
+        conn = data.get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM outings")
+        steps["outings_count"] = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM weather_cache")
+        steps["cache_count"] = cur.fetchone()[0]
+        steps["db_time_ms"] = round((time.time() - t1) * 1000, 2)
+    except Exception as e:
+        steps["db_error"] = str(e)
+
+    t2 = time.time()
+    try:
+        w_data, is_c = data.fetch_forecast(40.7128, -74.006, days=7)
+        steps["weather_cached"] = is_c
+        steps["weather_time_ms"] = round((time.time() - t2) * 1000, 2)
+    except Exception as e:
+        steps["weather_error"] = str(e)
+
+    t3 = time.time()
+    try:
+        clf, train_count = get_trained_model()
+        steps["model_fitted"] = clf.is_fitted
+        steps["train_count"] = train_count
+        steps["model_time_ms"] = round((time.time() - t3) * 1000, 2)
+    except Exception as e:
+        steps["model_error"] = str(e)
+
+    steps["total_ms"] = round((time.time() - t0) * 1000, 2)
+    return steps
+
+
 @app.get("/api/prediction")
 def get_prediction(
     lat: float = Query(40.7128, description="Latitude"),
