@@ -75,6 +75,18 @@ def get_trained_model() -> tuple[model.GrassdayModel, int]:
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
+@app.get("/")
+def root():
+    return {
+        "service": "Grassday API",
+        "status": "healthy",
+        "description": "TabPFN outdoor window predictor & nudge engine",
+        "docs": "/docs",
+        "health": "/api/health",
+        "prediction": "/api/prediction",
+    }
+
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
